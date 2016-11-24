@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=PyRunnerB
+Comment=A test in awesomeness continued
+Type=Service
+X-KDE-ServiceTypes=Plasma/Runner
+
+X-KDE-Library=plasma_runner_pyrunner
+X-KDE-PluginKeyword=/home/matthew/Programming/Python/KRunnerTest/pyrunner/b.py
+X-KDE-PluginInfo-Name=pyrunnerb
+X-KDE-PluginInfo-EnabledByDefault=true

@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=PyRunnerA
+Comment=A test in awesomeness
+Type=Service
+X-KDE-ServiceTypes=Plasma/Runner
+
+X-KDE-Library=plasma_runner_pyrunner
+X-KDE-PluginKeyword=/home/matthew/Programming/Python/KRunnerTest/pyrunner/a.py
+X-KDE-PluginInfo-Author=
+X-KDE-PluginInfo-Email=
+X-KDE-PluginInfo-Name=pyrunnera
+X-KDE-PluginInfo-Version=0.1
+X-KDE-PluginInfo-Website=http://plasma.kde.org/
+X-KDE-PluginInfo-Category=Epic
+X-KDE-PluginInfo-Depends=
+X-KDE-PluginInfo-License=GPL
+X-KDE-PluginInfo-EnabledByDefault=true
