@@ -1,36 +1,42 @@
 cmake_minimum_required(VERSION 3.6)
 
-project(pyrunner)
+project(python-runner)
 
 find_package(ECM 0.0.11 REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
 
 include(KDEInstallDirs)
 include(KDECMakeSettings)
-# include(KDECompilerSettings)
 include(FeatureSummary)
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(KF5 REQUIRED COMPONENTS CoreAddons Solid KIO Runner I18n)
 
 find_package(PythonLibs 3.5 REQUIRED)
+find_program(PYTHON "python" REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 find_package(Boost COMPONENTS python3 REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 add_definitions(-DQT_NO_KEYWORDS)
+add_definitions(-DNDEBUG)
+include(CheckCXXCompilerFlag)
 
-include_directories(src)
+# http://stackoverflow.com/a/33266748/3946766
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+    endif()
+endfunction()
 
-set(example_SRCS src/pyrunner.cpp)
-
-add_library(plasma_runner_pyrunner MODULE ${example_SRCS})
-target_link_libraries(plasma_runner_pyrunner KF5::Runner KF5::KIOCore KF5::KIOWidgets KF5::I18n KF5::CoreAddons)
-target_link_libraries(plasma_runner_pyrunner Qt5::Widgets)
-target_link_libraries(plasma_runner_pyrunner ${Boost_LIBRARIES})
-target_link_libraries(plasma_runner_pyrunner ${PYTHON_LIBRARIES})
-
+enable_cxx_compiler_flag_if_supported("-Wall")
+enable_cxx_compiler_flag_if_supported("-Wextra")
+enable_cxx_compiler_flag_if_supported("-pedantic")
 
 # https://github.com/lxde/lxqt-qtplugin/blob/master/src/CMakeLists.txt
 get_target_property(QT_QMAKE_EXECUTABLE ${Qt5Core_QMAKE_EXECUTABLE} IMPORTED_LOCATION)
@@ -49,12 +55,40 @@ else()
     message(FATAL_ERROR "Qt5 plugin directory cannot be detected.")
 endif()
 
+set(SETUP_PY ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
+
+execute_process(COMMAND ${PYTHON}-config --ldflags
+                    OUTPUT_VARIABLE PYTHON_LDFLAGS
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+string(STRIP "${PYTHON_LDFLAGS}" PYTHON_LDFLAGS)
+
+
+add_custom_target(sip_krunner DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py)
+add_custom_command(TARGET sip_krunner
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp ${CMAKE_CURRENT_BINARY_DIR}/sipAPI_krunner.cpp
+    PRE_BUILD
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py
+    COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/config.py)
+
+add_library(plasma_runner_python MODULE src/python-krunner.cpp ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp)
+add_dependencies(plasma_runner_python sip_krunner)
+target_link_libraries(plasma_runner_python KF5::Runner KF5::KIOCore KF5::KIOWidgets KF5::I18n KF5::CoreAddons)
+target_link_libraries(plasma_runner_python Qt5::Widgets)
+target_link_libraries(plasma_runner_python ${Boost_LIBRARIES})
+target_link_libraries(plasma_runner_python ${PYTHON_LDFLAGS})
+
+add_custom_target(link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink plasma_runner_python.so _krunner.so)
+add_dependencies(link_target plasma_runner_python)
 
 # Install the library and .desktop file
-install(TARGETS plasma_runner_pyrunner DESTINATION ${QT_PLUGINS_DIR})
+# TODO make the qt plugin a symlink
+install(TARGETS plasma_runner_python DESTINATION ${QT_PLUGINS_DIR})
 install(FILES plasma-runner-pyrunner-a.desktop DESTINATION ${SERVICES_INSTALL_DIR})
 install(FILES plasma-runner-pyrunner-b.desktop DESTINATION ${SERVICES_INSTALL_DIR})
-#
+
+install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install)")
+
 # get_cmake_property(_variableNames VARIABLES)
 # foreach (_variableName ${_variableNames})
 #     message(STATUS "${_variableName}=${${_variableName}}")

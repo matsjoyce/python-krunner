@@ -6,11 +6,11 @@
 #include <string>
 
 
-class PyRunner : public Plasma::AbstractRunner {
+class PythonRunner : public Plasma::AbstractRunner {
     Q_OBJECT
 
 public:
-    PyRunner(QObject* parent, std::string fname_, const QVariantList& args);
+    PythonRunner(QObject* parent, std::string fname_, const QVariantList& args);
 
     void match(Plasma::RunnerContext& context);
     void run(const Plasma::RunnerContext& context, const Plasma::QueryMatch& match);

@@ -4,7 +4,7 @@ Comment=A test in awesomeness
 Type=Service
 X-KDE-ServiceTypes=Plasma/Runner
 
-X-KDE-Library=plasma_runner_pyrunner
+X-KDE-Library=plasma_runner_python
 X-KDE-PluginKeyword=/home/matthew/Programming/Python/KRunnerTest/pyrunner/a.py
 X-KDE-PluginInfo-Author=
 X-KDE-PluginInfo-Email=
