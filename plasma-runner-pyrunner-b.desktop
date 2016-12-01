@@ -2,6 +2,7 @@
 Name=PyRunnerB
 Comment=A test in awesomeness continued
 Type=Service
+Icon=text-x-python
 X-KDE-ServiceTypes=Plasma/Runner
 
 X-KDE-Library=plasma_runner_python

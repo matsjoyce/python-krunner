@@ -3,6 +3,13 @@ from PyQt5 import QtGui
 
 
 class Runner(krunner.AbstractRunner):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.a = [self.addAction("a", QtGui.QIcon.fromTheme("text-x-haskell"), "Haskell"),
+                  self.addAction("b", QtGui.QIcon.fromTheme("text-x-python"), "Python"),
+                  self.addAction("c", QtGui.QIcon.fromTheme("text-x-pascal"), "Pascal"),
+                  self.addAction("d", QtGui.QIcon.fromTheme("text-x-java"), "Java")]
+
     def match(self, context):
         m = krunner.QueryMatch(self)
         m.setText("Hello from a " + context.query())
@@ -13,11 +20,22 @@ class Runner(krunner.AbstractRunner):
         print("CE", self.config().exists())
 
     def run(self, context, match):
-        print(match.text())
+        print("Text", match.text())
+        print("Action selected:", match.selectedAction().text())
 
     def categories(self):
-        return ["a", "b"]
+        return [" Awesome", " Ancient", " Awful", " Abstruse"]
+
+    def actionsForMatch(self, match):
+        return self.a
 
     def categoryIcon(self, name):
-        print("NAME", name)
-        return QtGui.QIcon.fromTheme("text-x-python")
+        if name == " Awesome":
+            return QtGui.QIcon.fromTheme("text-x-python")
+        elif name == " Ancient":
+            return QtGui.QIcon.fromTheme("text-x-pascal")
+        elif name == " Abstruse":
+            return QtGui.QIcon.fromTheme("text-x-haskell")
+        else:
+            return QtGui.QIcon.fromTheme("text-x-java")
+

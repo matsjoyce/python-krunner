@@ -72,7 +72,7 @@ PythonRunner::PythonRunner(QObject* parent, std::string fname_, const QVariantLi
 
     qDebug() << "Init obj..." << args;
     try {
-        pyobj = main_namespace["Runner"](python::object(), convert_qvariantlist(args));
+        pyobj = main_namespace["Runner"](convert_sip<AbstractRunner>(this), convert_qvariantlist(args));
 
         bool all_connected = true;
         // Child -> Parent

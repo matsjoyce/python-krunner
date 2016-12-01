@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Py Home Files
+Comment=Part of a tutorial demonstrating how to create Runner plugins
+Type=Service
+X-KDE-ServiceTypes=Plasma/Runner
+
+X-KDE-Library=plasma_runner_python
+X-KDE-PluginKeyword=/home/matthew/Programming/Python/KRunnerTest/pyrunner/example-homefiles/homefiles.py
+X-KDE-PluginInfo-Name=pyhomefiles
+X-KDE-PluginInfo-EnabledByDefault=true
