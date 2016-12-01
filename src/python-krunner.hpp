@@ -27,9 +27,22 @@ protected:
     virtual QList<QAction*> actionsForMatch(const Plasma::QueryMatch &match);
     virtual void init();
     virtual QMimeData* mimeDataForMatch(const Plasma::QueryMatch &match);
+
+protected Q_SLOTS:
+    void _child_prepare();
+    void _child_teardown();
+    void _child_matchingSuspended(bool suspended);
+
+    void _parent_prepare();
+    void _parent_teardown();
+    void _parent_matchingSuspended(bool suspended);
+
 private:
     std::string fname;
     boost::python::object pyobj;
+    bool prepare_signaling = false;
+    bool teardown_signaling = false;
+    bool matchingSuspended_signaling = false;
 };
 
 #endif // PYRUNNER_H

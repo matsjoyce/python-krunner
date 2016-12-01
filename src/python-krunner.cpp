@@ -5,6 +5,8 @@
 #include <QDebug>
 #include <QtGlobal>
 #include <QIcon>
+#include <QList>
+#include <QAction>
 #include <Python.h>
 #include <dlfcn.h>
 #include <string>
@@ -31,6 +33,7 @@ public:
 
 // https://wiki.python.org/moin/boost.python/EmbeddingPython
 std::string extractException() {
+    qDebug() << "handling exception";
     PyObject *exc,*val,*tb;
     PyErr_Fetch(&exc, &val, &tb);
     PyErr_NormalizeException(&exc, &val, &tb);
@@ -53,15 +56,8 @@ void handle_exception() {
 
 // Public Methods
 
-PythonRunner::PythonRunner(QObject* parent, std::string fname_, const QVariantList& args)
-    : AbstractRunner(parent, args), fname(fname_) {
-    setIgnoredTypes(RunnerContext::NetworkLocation |
-                    RunnerContext::Executable |
-                    RunnerContext::ShellCommand);
-    setSpeed(SlowSpeed);
-    setPriority(LowPriority);
-    setHasRunOptions(false);
-
+PythonRunner::PythonRunner(QObject* parent, std::string fname_, const QVariantList& args) : AbstractRunner(parent, args),
+                                                                                            fname(fname_) {
     auto gil = GILRAII();
     python::object main_namespace;
     try {
@@ -77,16 +73,30 @@ PythonRunner::PythonRunner(QObject* parent, std::string fname_, const QVariantLi
     qDebug() << "Init obj..." << args;
     try {
         pyobj = main_namespace["Runner"](python::object(), convert_qvariantlist(args));
-//         pyobj = main_namespace["Runner"];
+
+        bool all_connected = true;
+        // Child -> Parent
+        all_connected = all_connected && connect_sip(pyobj.attr("prepare"),
+                                         this, SLOT(_child_prepare()));
+        all_connected = all_connected && connect_sip(pyobj.attr("teardown"),
+                                                     this, SLOT(_child_teardown()));
+        all_connected = all_connected && connect_sip(pyobj.attr("matchingSuspended"),
+                                                     this, SLOT(_child_matchingSuspended(bool)));
+        if (!all_connected) {
+            qWarning("Some signals failed to connect");
+        }
+
+        // Parent -> Child
+
+        QObject::connect(this, SIGNAL(prepare()), this, SLOT(_parent_prepare()));
+        QObject::connect(this, SIGNAL(teardown()), this, SLOT(_parent_teardown()));
+        QObject::connect(this, SIGNAL(matchingSuspended(bool)), this, SLOT(_parent_matchingSuspended(bool)));
     }
     catch (python::error_already_set) {
         handle_exception();
     }
-
-    if (pyobj) {
-        // TODO forward signals
-    }
     qDebug() << "Done initing obj...";
+    qDebug()<<QString::fromStdString(python::extract<std::string>(python::str(pyobj)));
 }
 
 PythonRunner::~PythonRunner() {
@@ -111,18 +121,17 @@ void PythonRunner::match(RunnerContext& context) {
 }
 
 void PythonRunner::createRunOptions(QWidget* widget) {
-    // TODO
     qDebug() << "CRO";
-//     auto gil = GILRAII();
-//     if (!pyobj) {
-//         return;
-//     }
-//     try {
-//         pyobj.attr("createRunOptions")(convert_sip<RunnerContext>(&context));
-//     }
-//     catch (python::error_already_set) {
-//         handle_exception();
-//     }
+    auto gil = GILRAII();
+    if (!pyobj) {
+        return;
+    }
+    try {
+        pyobj.attr("createRunOptions")(convert_sip<QWidget>(widget));
+    }
+    catch (python::error_already_set) {
+        handle_exception();
+    }
     return AbstractRunner::createRunOptions(widget);
 }
 
@@ -171,7 +180,7 @@ QIcon PythonRunner::categoryIcon(const QString& category) const {
     }
     try {
         python::object icon = pyobj.attr("categoryIcon")(category.toStdString());
-        auto qi= QIcon(*extract_sip<QIcon>(icon.ptr()));
+        auto qi= QIcon(*extract_sip<QIcon>(icon));
 
         qDebug() << "CI" << category << qi;
         return qi;
@@ -189,7 +198,7 @@ void PythonRunner::reloadConfiguration() {
         return AbstractRunner::reloadConfiguration();
     }
     try {
-        python::object icon = pyobj.attr("reloadConfiguration")();
+        pyobj.attr("reloadConfiguration")();
     }
     catch (python::error_already_set) {
         handle_exception();
@@ -200,13 +209,28 @@ void PythonRunner::reloadConfiguration() {
 // Protected Methods
 
 QList<QAction*> PythonRunner::actionsForMatch(const QueryMatch &match) {
-    // TODO
+    qDebug() << "C";
+    auto gil = GILRAII();
+    if (!pyobj) {
+        return AbstractRunner::actionsForMatch(match);
+    }
+    try {
+        python::object actionlist = pyobj.attr("actionsForMatch")(convert_sip_transfer(new QueryMatch(match)));
+        auto ret = QList<QAction*>();
+        auto end = python::stl_input_iterator<python::object>();
+        for (auto iter = python::stl_input_iterator<python::object>(actionlist); iter != end; ++iter) {
+            ret << extract_sip<QAction>(*iter);
+        }
+        qDebug() << "C" << ret;
+        return ret;
+    }
+    catch (python::error_already_set) {
+        handle_exception();
+    }
     return AbstractRunner::actionsForMatch(match);
 }
 
 void PythonRunner::init() {
-    reloadConfiguration();
-
     auto gil = GILRAII();
     if (!pyobj) {
         return;
@@ -220,8 +244,81 @@ void PythonRunner::init() {
 }
 
 QMimeData* PythonRunner::mimeDataForMatch(const QueryMatch &match) {
-    // TODO
+    qDebug() << "MDFM";
+    auto gil = GILRAII();
+    if (!pyobj) {
+        return AbstractRunner::mimeDataForMatch(match);
+    }
+    try {
+        python::object icon = pyobj.attr("mimeDataForMatch")(convert_sip_transfer(new QueryMatch(match)));
+        auto qmd = extract_sip<QMimeData>(icon);
+
+        qDebug() << "CI" << qmd;
+        return qmd;
+    }
+    catch (python::error_already_set) {
+        handle_exception();
+    }
     return AbstractRunner::mimeDataForMatch(match);
+}
+
+// Slots
+
+void PythonRunner::_child_prepare() {
+    qDebug() << "_child_prepare" << prepare_signaling;
+    if (!prepare_signaling) {
+        prepare_signaling = true;
+        Q_EMIT prepare();
+        prepare_signaling = false;
+    }
+}
+
+void PythonRunner::_child_teardown() {
+    qDebug() << "_child_teardown" << teardown_signaling;
+    if (!teardown_signaling) {
+        teardown_signaling = true;
+        Q_EMIT teardown();
+        teardown_signaling = false;
+    }
+}
+
+void PythonRunner::_child_matchingSuspended(bool suspended) {
+    qDebug() << "_child_matchingSuspended(" << suspended << ")" << matchingSuspended_signaling;
+    if (!matchingSuspended_signaling) {
+        matchingSuspended_signaling = true;
+        Q_EMIT matchingSuspended(suspended);
+        matchingSuspended_signaling = false;
+    }
+}
+
+void PythonRunner::_parent_prepare() {
+    auto gil = GILRAII();
+    qDebug() << "_parent_prepare" << prepare_signaling;
+    if (!prepare_signaling) {
+        prepare_signaling = true;
+        pyobj.attr("prepare").attr("emit")();
+        prepare_signaling = false;
+    }
+}
+
+void PythonRunner::_parent_teardown() {
+    auto gil = GILRAII();
+    qDebug() << "_parent_teardown" << teardown_signaling;
+    if (!teardown_signaling) {
+        teardown_signaling = true;
+        pyobj.attr("teardown").attr("emit")();
+        teardown_signaling = false;
+    }
+}
+
+void PythonRunner::_parent_matchingSuspended(bool suspended) {
+    auto gil = GILRAII();
+    qDebug() << "_parent_matchingSuspended(" << suspended << ")" << matchingSuspended_signaling;
+    if (!matchingSuspended_signaling) {
+        matchingSuspended_signaling = true;
+        pyobj.attr("matchingSuspended").attr("emit")(suspended);
+        matchingSuspended_signaling = false;
+    }
 }
 
 // Plugin discovery
@@ -237,6 +334,9 @@ public:
         dlopen("libpython3.5m.so", RTLD_LAZY | RTLD_GLOBAL);
         Py_InitializeEx(0);
         PyEval_InitThreads();
+        auto sys = python::import("sys");
+        auto krunner = python::import("krunner");
+        sys.attr("excepthook") = krunner.attr("_except_hook");
         PyEval_SaveThread();
     }
     ~factory() {
@@ -244,7 +344,7 @@ public:
     }
 
 protected:
-    virtual QObject *create(const char* iface, QWidget* /*parentWidget*/, QObject* parent,
+    virtual QObject *create(const char* /*iface*/, QWidget* /*parentWidget*/, QObject* parent,
                             const QVariantList& args, const QString& keyword) {
         qDebug() << "python-krunner 0.1 loading:" << keyword;
         return new PythonRunner(parent, keyword.toStdString(), args);

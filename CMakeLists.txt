@@ -68,7 +68,7 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp PRO
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp
     PRE_BUILD
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py src/sip/
     COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/config.py)
 
 add_library(plasma_runner_python SHARED src/python-krunner.cpp ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp)

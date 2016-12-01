@@ -9,6 +9,9 @@ class Runner(krunner.AbstractRunner):
         m.setIconName("text-x-python")
         context.addMatch(m)
 
+    def reloadConfiguration(self):
+        print("CE", self.config().exists())
+
     def run(self, context, match):
         print(match.text())
 

@@ -42,7 +42,7 @@ const sipAPIDef* get_sip_api()
 #endif
 }
 
-template<class T> const char* classname();
+template<class T> const char* classname() {return T::unknown_type_needs_classname_specialisation;}
 
 template<class T> boost::python::handle<PyObject> _convert_sip(T* obj, PyObject* transfer) {
     auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
@@ -63,7 +63,7 @@ template<class T> boost::python::handle<PyObject> convert_sip_transfer(T* obj) {
     return _convert_sip(obj, Py_None);
 }
 
-template<class T> T* extract_sip(PyObject* obj) {
+template<class T> T* extract_sip(boost::python::object obj) {
     auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
     auto type_obj = sip_api->api_find_type(classname<T>());
     if (!type_obj) {
@@ -71,9 +71,9 @@ template<class T> T* extract_sip(PyObject* obj) {
         throw boost::python::error_already_set();
     }
     int err = 0;
-    auto res = sip_api->api_force_convert_to_type(obj, type_obj, NULL, SIP_NOT_NONE, NULL, &err);
+    auto res = sip_api->api_force_convert_to_type(obj.ptr(), type_obj, NULL, SIP_NOT_NONE, NULL, &err);
     if (err) {
-        qWarning("Converion failed", classname<T>());
+        qWarning("Conversion to %s failed", classname<T>());
         throw boost::python::error_already_set();
     }
     return reinterpret_cast<T*>(res);
@@ -90,6 +90,30 @@ boost::python::object convert_qvariantlist(const QVariantList& qva) {
     return converted;
 }
 
+bool _connect_sip(boost::python::object signal, const QObject* reciever, const char* method, bool reverse) {
+    typedef sipErrorState (*functype)(PyObject *signal, QObject **transmitter, QByteArray &signal_signature);
+    auto convert = reinterpret_cast<functype>(get_sip_api()->api_import_symbol("pyqt5_get_pyqtsignal_parts"));
+    QObject* sender;
+    QByteArray signature;
+    sipErrorState state = convert(signal.ptr(), &sender, signature);
+    if (state == sipErrorFail) {
+        qWarning("Conversion failed");
+        throw boost::python::error_already_set();
+    }
+    if (reverse) {
+        return QObject::connect(reciever, method, sender, signature);
+    }
+    return QObject::connect(sender, signature, reciever, method);
+}
+
+bool connect_sip(boost::python::object signal, const QObject* reciever, const char* method) {
+    return _connect_sip(signal, reciever, method, false);
+}
+
+bool rconnect_sip(boost::python::object signal, const QObject* reciever, const char* method) {
+    return _connect_sip(signal, reciever, method, true);
+}
+
 // Types
 
 template<> const char* classname<Plasma::AbstractRunner>() {return "Plasma::AbstractRunner";}
@@ -103,5 +127,11 @@ template<> const char* classname<Plasma::RunnerSyntax>() {return "Plasma::Runner
 template<> const char* classname<QObject>() {return "QObject";}
 
 template<> const char* classname<QIcon>() {return "QIcon";}
+
+template<> const char* classname<QAction>() {return "QAction";}
+
+template<> const char* classname<QMimeData>() {return "QAction";}
+
+template<> const char* classname<QWidget>() {return "QWidget";}
 
 #endif // CONVERT_KRUNNER_HPP

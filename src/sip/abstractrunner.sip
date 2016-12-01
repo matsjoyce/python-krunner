@@ -51,7 +51,7 @@ class AbstractRunner : public QObject {
         explicit AbstractRunner(QObject *parent = 0, const QString &path = QString());
         AbstractRunner(QObject *parent, const QVariantList &args);
         void suspendMatching(bool suspend);
-//         KConfigGroup config() const;
+        KConfigGroup config() const;
         void setHasRunOptions(bool hasRunOptions);
         void setSpeed(Speed newSpeed);
         void setPriority(Priority newPriority);

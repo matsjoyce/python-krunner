@@ -100,3 +100,10 @@ class AbstractRunner(_krunner.Plasma.AbstractRunner, metaclass=ARMeta):
 
     def setSyntaxes(self, syns):
         return self.parent().setSyntaxes(syns)
+
+
+def _except_hook(type, value, tb):
+    # Used by plasma_runner_python to stop qFatal being called by PyQt5
+    import traceback
+    print("Exception in runner:")
+    traceback.print_exception(type, value, tb)

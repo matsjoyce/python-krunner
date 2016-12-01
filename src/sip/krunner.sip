@@ -7,3 +7,7 @@
 %Include querymatch.sip
 %Include runnercontext.sip
 %Include runnersyntax.sip
+
+%Include kconfig.sip
+%Include kconfigbase.sip
+%Include kconfiggroup.sip
