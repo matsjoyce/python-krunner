@@ -15,7 +15,7 @@ BUILD_DIR = os.path.join(SETUP_DIR, "build")
 
 class my_build_ext(build_ext):
     def build_extension(self, ext):
-        from_ = os.path.join(BUILD_DIR, "_krunner.so")
+        from_ = os.path.join(BUILD_DIR, "plasma_runner_python.so")
         to = self.get_ext_fullpath(ext.name)
 
         print("Moving", from_, "to", to)
@@ -27,7 +27,7 @@ class my_build_ext(build_ext):
 setup(name="krunner",
       version="0.1",
       author="Matthew Joyce",
-      package_dir = {"": os.path.join(SETUP_DIR, "src")},
+      package_dir={"": os.path.join(SETUP_DIR, "src")},
       py_modules=["krunner"],
       ext_modules=[Extension("_krunner", [])],
       author_email="matsjoyce@gmail.com",

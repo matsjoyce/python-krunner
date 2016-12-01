@@ -55,31 +55,28 @@ else()
     message(FATAL_ERROR "Qt5 plugin directory cannot be detected.")
 endif()
 
-set(SETUP_PY ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
-
 execute_process(COMMAND ${PYTHON}-config --ldflags
                     OUTPUT_VARIABLE PYTHON_LDFLAGS
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     ERROR_QUIET)
 string(STRIP "${PYTHON_LDFLAGS}" PYTHON_LDFLAGS)
 
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp PROPERTIES
+    GENERATED TRUE
+)
 
-add_custom_target(sip_krunner DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py)
-add_custom_command(TARGET sip_krunner
-    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp ${CMAKE_CURRENT_BINARY_DIR}/sipAPI_krunner.cpp
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp
     PRE_BUILD
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config.py
     COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/config.py)
 
-add_library(plasma_runner_python MODULE src/python-krunner.cpp ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp)
-add_dependencies(plasma_runner_python sip_krunner)
+add_library(plasma_runner_python SHARED src/python-krunner.cpp ${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp)
+set_target_properties(plasma_runner_python PROPERTIES PREFIX "")
 target_link_libraries(plasma_runner_python KF5::Runner KF5::KIOCore KF5::KIOWidgets KF5::I18n KF5::CoreAddons)
 target_link_libraries(plasma_runner_python Qt5::Widgets)
 target_link_libraries(plasma_runner_python ${Boost_LIBRARIES})
 target_link_libraries(plasma_runner_python ${PYTHON_LDFLAGS})
-
-add_custom_target(link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink plasma_runner_python.so _krunner.so)
-add_dependencies(link_target plasma_runner_python)
 
 # Install the library and .desktop file
 # TODO make the qt plugin a symlink
@@ -87,7 +84,7 @@ install(TARGETS plasma_runner_python DESTINATION ${QT_PLUGINS_DIR})
 install(FILES plasma-runner-pyrunner-a.desktop DESTINATION ${SERVICES_INSTALL_DIR})
 install(FILES plasma-runner-pyrunner-b.desktop DESTINATION ${SERVICES_INSTALL_DIR})
 
-install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install)")
+install(CODE "execute_process(COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/setup.py install)")
 
 # get_cmake_property(_variableNames VARIABLES)
 # foreach (_variableName ${_variableNames})

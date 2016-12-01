@@ -1,7 +1,6 @@
 #ifndef CONVERT_KRUNNER_HPP
 #define CONVERT_KRUNNER_HPP
 
-#include "sipAPI_krunner.h"
 #include "sip.h"
 #include <krunner/abstractrunner.h>
 #include <boost/python.hpp>
@@ -45,18 +44,40 @@ const sipAPIDef* get_sip_api()
 
 template<class T> const char* classname();
 
-
-template<class T> boost::python::handle<PyObject> convert_sip(T* obj) {
+template<class T> boost::python::handle<PyObject> _convert_sip(T* obj, PyObject* transfer) {
     auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
     auto type_obj = sip_api->api_find_type(classname<T>());
     if (!type_obj) {
         qWarning("Type %s not found", classname<T>());
         throw boost::python::error_already_set();
     }
-    auto res = sip_api->api_convert_from_type(static_cast<void *>(obj), type_obj, NULL);
+    auto res = sip_api->api_convert_from_type(static_cast<void *>(obj), type_obj, transfer);
     return boost::python::handle<PyObject>(res);
 }
 
+template<class T> boost::python::handle<PyObject> convert_sip(T* obj) {
+    return _convert_sip(obj, NULL);
+}
+
+template<class T> boost::python::handle<PyObject> convert_sip_transfer(T* obj) {
+    return _convert_sip(obj, Py_None);
+}
+
+template<class T> T* extract_sip(PyObject* obj) {
+    auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
+    auto type_obj = sip_api->api_find_type(classname<T>());
+    if (!type_obj) {
+        qWarning("Type %s not found", classname<T>());
+        throw boost::python::error_already_set();
+    }
+    int err = 0;
+    auto res = sip_api->api_force_convert_to_type(obj, type_obj, NULL, SIP_NOT_NONE, NULL, &err);
+    if (err) {
+        qWarning("Converion failed", classname<T>());
+        throw boost::python::error_already_set();
+    }
+    return reinterpret_cast<T*>(res);
+}
 
 boost::python::object convert_qvariantlist(const QVariantList& qva) {
     typedef PyObject* (*functype)(QVariant &value, PyObject *type);
@@ -69,7 +90,6 @@ boost::python::object convert_qvariantlist(const QVariantList& qva) {
     return converted;
 }
 
-
 // Types
 
 template<> const char* classname<Plasma::AbstractRunner>() {return "Plasma::AbstractRunner";}
@@ -79,5 +99,9 @@ template<> const char* classname<Plasma::QueryMatch>() {return "Plasma::QueryMat
 template<> const char* classname<Plasma::RunnerContext>() {return "Plasma::RunnerContext";}
 
 template<> const char* classname<Plasma::RunnerSyntax>() {return "Plasma::RunnerSyntax";}
+
+template<> const char* classname<QObject>() {return "QObject";}
+
+template<> const char* classname<QIcon>() {return "QIcon";}
 
 #endif // CONVERT_KRUNNER_HPP
