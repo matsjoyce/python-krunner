@@ -1,7 +1,7 @@
 example-homefiles
 -----------------
 
-A python port of the tutorial at https://techbase.kde.org/Development/Tutorials/Plasma4/PythonRunner
+A python port of the tutorial at https://techbase.kde.org/Development/Tutorials/Plasma4/AbstractRunner
 
 Build and install
 -----------------
