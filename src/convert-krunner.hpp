@@ -6,7 +6,9 @@
 #include <boost/python.hpp>
 #include <QtGlobal>
 #include <QDebug>
+#include <QLoggingCategory>
 
+Q_DECLARE_LOGGING_CATEGORY(LOG_PYTHON_KRUNNER)
 
 // http://pyqt.sourceforge.net/Docs/sip4/embedding.html
 const sipAPIDef* get_sip_api()
@@ -48,7 +50,7 @@ template<class T> boost::python::handle<PyObject> _convert_sip(T* obj, PyObject*
     auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
     auto type_obj = sip_api->api_find_type(classname<T>());
     if (!type_obj) {
-        qWarning("Type %s not found", classname<T>());
+        qCWarning(LOG_PYTHON_KRUNNER) << "Type" << classname<T>() << "not found";
         throw boost::python::error_already_set();
     }
     auto res = sip_api->api_convert_from_type(static_cast<void *>(obj), type_obj, transfer);
@@ -67,13 +69,13 @@ template<class T> T* extract_sip(boost::python::object obj) {
     auto sip_api = get_sip_api(); // TODO maybe make this a global-level static
     auto type_obj = sip_api->api_find_type(classname<T>());
     if (!type_obj) {
-        qWarning("Type %s not found", classname<T>());
+        qCWarning(LOG_PYTHON_KRUNNER) << "Type" << classname<T>() << "not found";
         throw boost::python::error_already_set();
     }
     int err = 0;
     auto res = sip_api->api_force_convert_to_type(obj.ptr(), type_obj, NULL, SIP_NOT_NONE, NULL, &err);
     if (err) {
-        qWarning("Conversion to %s failed", classname<T>());
+        qCWarning(LOG_PYTHON_KRUNNER) << "Conversion to" << classname<T>() << "failed";
         throw boost::python::error_already_set();
     }
     return reinterpret_cast<T*>(res);
@@ -97,7 +99,7 @@ bool _connect_sip(boost::python::object signal, const QObject* reciever, const c
     QByteArray signature;
     sipErrorState state = convert(signal.ptr(), &sender, signature);
     if (state == sipErrorFail) {
-        qWarning("Conversion failed");
+        qCWarning(LOG_PYTHON_KRUNNER) << "Signal extraction failed";
         throw boost::python::error_already_set();
     }
     if (reverse) {

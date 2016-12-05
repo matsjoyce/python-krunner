@@ -2,6 +2,7 @@ import krunner
 import os
 import pathlib
 import shlex
+import fnmatch
 from PyQt5 import QtCore, QtWidgets
 
 
@@ -39,16 +40,15 @@ class Runner(krunner.AbstractRunner):
         if not query.startswith(self._triggerWord):
             return
 
-        query = query[len(self._triggerWord):]
+        query = query[len(self._triggerWord):].lower()
 
         if len(query) > 2:
             query = "*{}*".format(query)
 
-        for file in self._path.glob(query):
+        for file in filter(lambda f: fnmatch.fnmatch(f.name.lower(), query), self._path.iterdir()):
             if not context.isValid():
                 return
-
-            if self._path not in file.parents or file.name.startswith("."):
+            elif file.name.startswith("."):
                 continue
 
             match = krunner.QueryMatch(self)

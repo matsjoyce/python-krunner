@@ -1,0 +1,8 @@
+#ifndef PYTHON_KRUNNER_CONF_HPP
+#define PYTHON_KRUNNER_CONF_HPP
+
+inline const char* get_python_dl_location() {
+    return "${PYTHON_DL_NAME}";
+}
+
+#endif // PYTHON_KRUNNER_CONF_HPP

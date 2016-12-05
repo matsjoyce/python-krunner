@@ -1,5 +1,5 @@
-#ifndef PYRUNNER_H
-#define PYRUNNER_H
+#ifndef PYTHON_KRUNNER_HPP
+#define PYTHON_KRUNNER_HPP
 
 #include <krunner/abstractrunner.h>
 #include <krunner/querymatch.h>
@@ -7,7 +7,9 @@
 #include <krunner/runnersyntax.h>
 #include <boost/python.hpp>
 #include <string>
+#include <QLoggingCategory>
 
+Q_DECLARE_LOGGING_CATEGORY(LOG_PYTHON_KRUNNER)
 
 class PythonRunner : public Plasma::AbstractRunner {
     Q_OBJECT
@@ -45,4 +47,4 @@ private:
     bool matchingSuspended_signaling = false;
 };
 
-#endif // PYRUNNER_H
+#endif // PYTHON_KRUNNER_HPP

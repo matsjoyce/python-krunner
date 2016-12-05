@@ -61,6 +61,9 @@ execute_process(COMMAND ${PYTHON}-config --ldflags
                     ERROR_QUIET)
 string(STRIP "${PYTHON_LDFLAGS}" PYTHON_LDFLAGS)
 
+get_filename_component(PYTHON_DL_NAME ${PYTHON_LIBRARIES} NAME)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/python-krunner-conf.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/python-krunner-conf.hpp)
+
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/sip_krunnerpart0.cpp PROPERTIES
     GENERATED TRUE
 )
@@ -81,8 +84,6 @@ target_link_libraries(plasma_runner_python ${PYTHON_LDFLAGS})
 # Install the library and .desktop file
 # TODO make the qt plugin a symlink
 install(TARGETS plasma_runner_python DESTINATION ${QT_PLUGINS_DIR})
-install(FILES plasma-runner-pyrunner-a.desktop DESTINATION ${SERVICES_INSTALL_DIR})
-install(FILES plasma-runner-pyrunner-b.desktop DESTINATION ${SERVICES_INSTALL_DIR})
 
 install(CODE "execute_process(COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/setup.py install)")
 
