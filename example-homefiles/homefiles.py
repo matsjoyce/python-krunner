@@ -12,8 +12,8 @@ class Runner(krunner.AbstractRunner):
         self.setIgnoredTypes(krunner.RunnerContext.NetworkLocation |
                              krunner.RunnerContext.Executable |
                              krunner.RunnerContext.ShellCommand)
-        #self.setSpeed(krunner.AbstractRunner.SlowSpeed)
-        #self.setPriority(krunner.AbstractRunner.LowPriority)
+        # self.setSpeed(krunner.AbstractRunner.SlowSpeed)
+        # self.setPriority(krunner.AbstractRunner.LowPriority)
         self.setHasRunOptions(True)
         self._triggerWord = self._path = None
 
