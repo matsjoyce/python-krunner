@@ -12,7 +12,7 @@ include(FeatureSummary)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(KF5 REQUIRED COMPONENTS CoreAddons Solid KIO Runner I18n)
 
-find_package(PythonLibs 3.5 REQUIRED)
+find_package(PythonLibs 3 REQUIRED)
 find_program(PYTHON "python" REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 

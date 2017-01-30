@@ -14,7 +14,7 @@ del name
 del cls
 
 
-class ARMeta(QtCore.pyqtWrapperType, abc.ABCMeta):
+class ARMeta(type(_krunner.Plasma.AbstractRunner), abc.ABCMeta):
     pass
 
 

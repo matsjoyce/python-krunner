@@ -313,17 +313,36 @@ class factory : public KPluginFactory {
     Q_OBJECT
     Q_INTERFACES(KPluginFactory)
     Q_PLUGIN_METADATA(IID KPluginFactory_iid)
+    bool startup_succeeded = false;
 
 public:
     explicit factory() {
+        qCDebug(LOG_PYTHON_KRUNNER) << "Loading python";
         // https://bugs.python.org/issue19153
         dlopen(get_python_dl_location(), RTLD_LAZY | RTLD_GLOBAL);
         Py_InitializeEx(0);
         PyEval_InitThreads();
-        auto sys = python::import("sys");
-        auto krunner = python::import("krunner");
-        sys.attr("excepthook") = krunner.attr("_except_hook");
+        qCDebug(LOG_PYTHON_KRUNNER) << "Loading modules";
+        python::object sys, krunner;
+        try {
+            sys = python::import("sys");
+        }
+        catch (python::error_already_set) {
+            qCDebug(LOG_PYTHON_KRUNNER) << "Loading modules failed";
+            return;
+        }
+        try {
+            krunner = python::import("krunner");
+            sys.attr("excepthook") = krunner.attr("_except_hook");
+        }
+        catch (python::error_already_set) {
+            qCDebug(LOG_PYTHON_KRUNNER) << "Loading modules failed";
+            return;
+        }
+
         PyEval_SaveThread();
+        qCDebug(LOG_PYTHON_KRUNNER) << "Finished loading python";
+        startup_succeeded = true;
     }
     ~factory() {
 
@@ -333,12 +352,16 @@ protected:
     virtual QObject* create(const char* /*iface*/, QWidget* /*parentWidget*/, QObject* parent,
                             const QVariantList& args, const QString& keyword) {
         qCDebug(LOG_PYTHON_KRUNNER) << "Loading" << keyword;
-        QFileInfo file(keyword);
-        if (!file.exists() || !file.isFile()) {
-            qCWarning(LOG_PYTHON_KRUNNER) << "File does not exist";
-            return NULL;
+        if (startup_succeeded) {
+            QFileInfo file(keyword);
+            if (!file.exists() || !file.isFile()) {
+                qCWarning(LOG_PYTHON_KRUNNER) << "File does not exist";
+                return nullptr;
+            }
+            return new PythonRunner(parent, keyword.toStdString(), args);
         }
-        return new PythonRunner(parent, keyword.toStdString(), args);
+        qCDebug(LOG_PYTHON_KRUNNER) << "Ignoring as startup failed";
+        return nullptr;
     }
 };
 
